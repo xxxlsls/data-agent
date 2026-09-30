@@ -32,6 +32,12 @@ logs/
 .idea/shelf/
 .vscode/
 
+# ===== 大模型权重文件（体积过大，不纳入版本控制，可从 HuggingFace/ModelScope 下载）=====
+docker/embedding/**/pytorch_model.bin
+docker/embedding/**/*.safetensors
+docker/embedding/**/model.safetensors
+docker/embedding/**/.cache/
+
 # ===== 操作系统 =====
 .DS_Store
 Thumbs.db
