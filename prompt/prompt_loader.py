@@ -5,8 +5,9 @@
 """
 from pathlib import Path
 
-# 项目根目录（本文件位于 <root>/prompt/prompt_loader.py，故向上两级）
-PROJECT_ROOT = Path(__file__).parents[1]
 
-# 提示词模板所在目录。注意是复数 prompts，与当前文件所在的单数 prompt 目录区分开
-PROMPTS_DIR = PROJECT_ROOT / "prompts"
+def load_prompt(name: str) -> str:
+    # 根据指定的名称拼接提示词所在的路径
+    prompt_path = Path(__file__).parents[2] / "prompts" / f"{name}.prompt"
+    # 可以使用Path中的函数直接读取即可
+    return prompt_path.read_text(encoding="utf-8")
