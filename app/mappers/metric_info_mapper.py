@@ -6,7 +6,7 @@
 from dataclasses import asdict
 
 from app.entities.metric_info import MetricInfo
-from app.models.metric_info_mysql import MetricInfoMySQL
+from app.repositories.mysql.meta.models.metric_info_mysql import MetricInfoMySQL
 
 
 class MetricInfoMapper:

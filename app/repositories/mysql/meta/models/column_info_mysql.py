@@ -7,7 +7,7 @@ from sqlalchemy import String, Text
 from sqlalchemy.types import JSON
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.models.base import Base
+from app.repositories.mysql.meta.models.base import Base
 
 
 class ColumnInfoMySQL(Base):

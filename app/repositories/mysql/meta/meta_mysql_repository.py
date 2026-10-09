@@ -14,10 +14,10 @@ from app.mappers.column_info_mapper import ColumnInfoMapper
 from app.mappers.column_metric_mapper import ColumnMetricMapper
 from app.mappers.metric_info_mapper import MetricInfoMapper
 from app.mappers.table_info_mapper import TableInfoMapper
-from app.models.column_info_mysql import ColumnInfoMySQL
-from app.models.column_metric_mysql import ColumnMetricMySQL
-from app.models.metric_info_mysql import MetricInfoMySQL
-from app.models.table_info_mysql import TableInfoMySQL
+from app.repositories.mysql.meta.models.column_info_mysql import ColumnInfoMySQL
+from app.repositories.mysql.meta.models.column_metric_mysql import ColumnMetricMySQL
+from app.repositories.mysql.meta.models.metric_info_mysql import MetricInfoMySQL
+from app.repositories.mysql.meta.models.table_info_mysql import TableInfoMySQL
 
 
 class MetaMySQLRepository:

@@ -10,7 +10,7 @@
 from dataclasses import asdict
 
 from app.entities.column_info import ColumnInfo
-from app.models.column_info_mysql import ColumnInfoMySQL
+from app.repositories.mysql.meta.models.column_info_mysql import ColumnInfoMySQL
 
 
 class ColumnInfoMapper:
