@@ -3,7 +3,7 @@
   @Time:2026/10/9
   @Desc:负责定义召回字段信息的节点
 """
-import keyword
+
 
 from langchain_core.output_parsers import JsonOutputParser
 from langchain_core.prompts import PromptTemplate
@@ -12,7 +12,6 @@ from langgraph.runtime import Runtime
 from app.agent.context import DataAgentContext
 from app.agent.llm import llm
 from app.agent.state import DataAgentState
-from app.clients.embedding_client_manager import embedding_client_manager
 from app.core.log import logger
 from app.entities.column_info import ColumnInfo
 from prompt.prompt_loader import load_prompt
@@ -47,16 +46,17 @@ async def recall_column(state:DataAgentState,runtime:Runtime[DataAgentContext]):
                 embedding_client = runtime.context["embedding_client"]
                 column_qdrant_repository = runtime.context["column_qdrant_repository"]
 
-                embedding = await embedding_client.aembed_query(keyword)
-                column_infos: list[ColumnInfo] = await column_qdrant_repository.search(embedding)
-                #对
-                for column_info in column_infos:
-                        column_id = column_info.id
-                        if column_id not in retrieved_column_map:
-                                retrieved_column_map[column_id] = column_info
+                for kw in keywords:  # ← 补上外层循环
+                        embedding = await embedding_client.aembed_query(kw)
+                        column_infos: list[ColumnInfo] = await column_qdrant_repository.search(embedding)
+                        for column_info in column_infos:
+                                column_id = column_info.id
+                                if column_id not in retrieved_column_map:
+                                        retrieved_column_map[column_id] = column_info
 
 
                 writer({"type": "progress", "step": "召回字段信息", "status": "success"})
+                return {'retrived_column_map': retrieved_column_map}
         except Exception as e:
                 logger.error(f"召回字段失败, 错误信息: {str(e)}")
                 writer({"type": "progress", "step": "召回字段信息", "status": "error"})

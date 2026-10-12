@@ -3,7 +3,7 @@
   @Time:2026/10/8
   @Desc:
 """
-from sqlalchemy import delete
+from sqlalchemy import delete, select, ScalarResult
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.entities.column_info import ColumnInfo
@@ -52,3 +52,23 @@ class MetaMySQLRepository:
         models = [ColumnMetricMapper.to_model(column_metric) for column_metric in column_metrics]
         self.session.add_all(models)
 
+    async def get_column_info_by_id(self, column_id: str) -> ColumnInfo:
+        """
+        查询根据当前字段的id查询meta库中的column_info
+        :param column_id: 字段ID
+        :return:
+        """
+        column_info_mysql: ColumnInfoMySQL | None = await self.session.get(ColumnInfoMySQL, column_id)
+        return ColumnInfoMapper.to_entity(column_info_mysql)
+
+    async def get_key_column_by_table_id(self, table_id: str) -> list[ColumnInfo]:
+        # sql = select * from column_info where table_id = ? and role in ("primary_key","foreign_key")
+        stmt = select(ColumnInfoMySQL).where(ColumnInfoMySQL.table_id == table_id,
+                                             ColumnInfoMySQL.role.in_(["primary_key", "foreign_key"]))
+        # ORM方式执行查库操作，底层将多列结果封装到一个对象中，scalars处理是单个元素
+        result: ScalarResult = await self.session.scalars(stmt)
+        return [ColumnInfoMapper.to_entity(column_info_mysql) for column_info_mysql in result]
+
+    async def get_table_info_by_id(self, table_id: str) -> TableInfo:
+        table_info_mysql: TableInfoMySQL | None = await self.session.get(TableInfoMySQL, table_id)
+        return TableInfoMapper.to_entity(table_info_mysql)

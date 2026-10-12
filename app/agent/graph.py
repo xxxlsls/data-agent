@@ -101,7 +101,7 @@ def build_graph():
 if __name__ == '__main__':
     graph = build_graph()
     # 查看图构建的形状
-    print(graph.get_graph().draw_mermaid())
+    # print(graph.get_graph().draw_mermaid())
 
     #初始化客户端对象
     embedding_client_manager.init()
@@ -112,6 +112,7 @@ if __name__ == '__main__':
 
 
     async def test_graph():
+        state = DataAgentState(query="统计2025年各地区销售总额")
         async with (meta_mysql_client_manager.session_factory() as meta_session, dw_mysql_client_manager.session_factory() as dw_session):
             context = DataAgentContext(
                 embedding_client=embedding_client_manager.client,
@@ -122,7 +123,7 @@ if __name__ == '__main__':
                 dw_mysql_repository=DWMySQLRepository(dw_session)
             )
             # 调用图流式输出
-            async for chunk in graph.astream(input=DataAgentState(query="统计华北地区销售总额"), context=context,
+            async for chunk in graph.astream(input = state, context=context,
                                              stream_mode="custom"):
                 print(chunk)
         # 关闭客户端

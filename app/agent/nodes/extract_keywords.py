@@ -3,7 +3,7 @@
   @Time:2026/10/9
   @Desc:负责定义关键词抽取的节点
 """
-import jieba
+import jieba.analyse
 from langgraph.config import get_stream_writer
 from langgraph.runtime import Runtime
 from app.agent.context import DataAgentContext
@@ -35,7 +35,7 @@ async def extract_keywords(state:DataAgentState,runtime:Runtime[DataAgentContext
                         "i",  # 成语
                         "l",  # 常用固定短语
                 )
-                keywords = jieba.analyse.extract_tags(query, topK=20, withWeight=True,
+                keywords = jieba.analyse.extract_tags(query, topK=20, withWeight=False,
                                            allowPOS=allow_pos)
                 keywords = list(set(keywords+[query]))
 
