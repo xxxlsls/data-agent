@@ -1,7 +1,7 @@
 """
   @Author:LiShuo
   @Time:2026/10/1
-  @Desc:
+  @Desc:重新定义日志的输出格式
 """
 import asyncio
 import sys
