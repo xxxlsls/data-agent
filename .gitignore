@@ -30,7 +30,12 @@ logs/
 .idea/workspace.xml
 .idea/usage.statistics.xml
 .idea/shelf/
+# Claude Code 插件的标签页会话状态（仅本地有效）
+.idea/claudeCodeTabState.xml
 .vscode/
+
+# ===== 误生成的空 lockfile（npm 在非前端目录执行时产生，前端真正的锁文件在 data-agent-fronted/）=====
+/package-lock.json
 
 # ===== 大模型权重文件（体积过大，不纳入版本控制，可从 HuggingFace/ModelScope 下载）=====
 docker/embedding/**/pytorch_model.bin

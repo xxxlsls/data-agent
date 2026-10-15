@@ -1,211 +1,179 @@
 <template>
-  <div class="chat-app">
-    <!-- ===== Header ===== -->
-    <header class="chat-header">
-      <div class="header-accent"></div>
-      <div class="header-content">
-        <div class="header-brand">
-          <span class="header-icon">📊</span>
-          <div class="header-text">
-            <h1 class="header-title">数据查询助手</h1>
-            <span class="header-subtitle">NL2SQL · 自然语言转数据查询</span>
-          </div>
+  <div class="px-app">
+    <!-- ===== 顶栏 ===== -->
+    <header class="px-header">
+      <div class="px-brand">
+        <span class="px-logo">▣</span>
+        <div class="px-brand-text">
+          <h1 class="px-title">DATA QUEST</h1>
+          <span class="px-subtitle">数据查询助手 · NL2SQL</span>
         </div>
-        <div class="header-status">
-          <span class="status-dot" :class="loading ? 'busy' : 'idle'"></span>
-          <span class="status-label">{{ loading ? '查询中...' : '就绪' }}</span>
-        </div>
+      </div>
+      <!-- 关卡指示：已完成的查询数 -->
+      <div class="px-stage">
+        <span class="px-stage-label">QUESTS</span>
+        <span class="px-stage-num">{{ queryCount }}</span>
       </div>
     </header>
 
-    <!-- ===== Messages Area ===== -->
-    <main class="chat-main" ref="messagesEl" @scroll="onScroll">
-      <!-- Welcome Screen -->
-      <div v-if="messages.length === 0" class="welcome-screen">
-        <div class="welcome-illustration">
-          <div class="illustration-icon">🔮</div>
-          <div class="illustration-rings">
-            <span class="ring ring-1"></span>
-            <span class="ring ring-2"></span>
-            <span class="ring ring-3"></span>
+    <!-- ===== 主体 ===== -->
+    <div class="px-body">
+      <!-- 左侧栏：快捷提问（从欢迎页中央移到这里，常驻可见） -->
+      <aside class="px-sidebar">
+        <div class="px-panel">
+          <div class="px-panel-head">
+            <span class="px-panel-icon">▤</span>
+            <span class="px-panel-title">QUICK QUESTS</span>
           </div>
-        </div>
-        <h2 class="welcome-title">你好，我是数据查询助手</h2>
-        <p class="welcome-desc">
-          用自然语言描述你的需求，我将自动生成 SQL 并返回查询结果
-        </p>
-        <div class="welcome-features">
-          <div class="feature-item">
-            <span class="feature-icon">💬</span>
-            <span>自然语言提问</span>
-          </div>
-          <div class="feature-item">
-            <span class="feature-icon">⚡</span>
-            <span>智能 SQL 生成</span>
-          </div>
-          <div class="feature-item">
-            <span class="feature-icon">📋</span>
-            <span>结果表格展示</span>
-          </div>
-        </div>
-        <div class="quick-questions-welcome">
-          <p class="quick-label">💡 试试这些快捷提问：</p>
-          <div class="quick-chips">
+          <div class="px-panel-body">
             <button
-              v-for="q in quickQuestions"
+              v-for="(q, i) in quickQuestions"
               :key="q"
-              class="quick-chip"
+              class="px-quest"
+              :disabled="loading"
               @click="sendQuickQuestion(q)"
             >
-              {{ q }}
+              <span class="px-quest-idx">{{ String(i + 1).padStart(2, "0") }}</span>
+              <span class="px-quest-text">{{ q }}</span>
             </button>
           </div>
         </div>
-      </div>
+      </aside>
 
-      <!-- Chat Messages -->
-      <div v-else class="messages-container">
-        <div
-          v-for="(msg, index) in messages"
-          :key="index"
-          :class="['message-row', msg.role, `msg-${msg.type}`]"
-        >
-          <!-- Assistant avatar -->
-          <div v-if="msg.role === 'assistant'" class="avatar-wrap">
-            <div class="avatar assistant-avatar">🤖</div>
-          </div>
-
-          <!-- Bubble -->
-          <div class="bubble-wrap">
-            <div class="bubble">
-              <!-- Text -->
-              <div v-if="msg.type === 'text'" class="msg-text">
-                {{ msg.content }}
-              </div>
-
-              <!-- Progress Steps -->
-              <div v-else-if="msg.type === 'steps'" class="msg-steps">
-                <div
-                  v-for="(step, sIdx) in msg.steps"
-                  :key="sIdx"
-                  :class="['step-item', step.status]"
-                >
-                  <span class="step-dot" :class="step.status">
-                    <span v-if="step.status === 'success'" class="step-check">✓</span>
-                    <span v-else-if="step.status === 'error'" class="step-cross">✕</span>
-                  </span>
-                  <span class="step-text">{{ step.text }}</span>
-                </div>
-              </div>
-
-              <!-- Table -->
-              <div v-else-if="msg.type === 'table'" class="msg-table">
-                <div class="table-header-bar">
-                  <span class="table-icon">📋</span>
-                  <span class="table-label">查询结果</span>
-                  <span class="table-count">{{ msg.rows.length }} 行</span>
-                </div>
-                <div class="table-wrap">
-                  <table class="result-table">
-                    <thead>
-                      <tr>
-                        <th v-for="col in msg.columns" :key="col">
-                          {{ col }}
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr v-for="(row, rIdx) in msg.rows" :key="rIdx">
-                        <td v-for="col in msg.columns" :key="col">
-                          {{ row[col] }}
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-
-              <!-- Error -->
-              <div v-else-if="msg.type === 'error'" class="msg-error">
-                <span class="error-icon">⚠️</span>
-                <div class="error-content">
-                  <span class="error-label">出错了</span>
-                  <span class="error-detail">{{ msg.content }}</span>
-                </div>
-              </div>
+      <!-- 消息区 -->
+      <main class="px-main" ref="messagesEl" @scroll="onScroll">
+        <!-- 空状态 -->
+        <div v-if="messages.length === 0" class="px-welcome">
+          <div class="px-welcome-box">
+            <div class="px-welcome-robot">▚▞</div>
+            <h2 class="px-welcome-title">READY PLAYER ONE</h2>
+            <p class="px-welcome-desc">
+              用自然语言描述你的需求<br />
+              系统将自动生成 SQL 并返回查询结果
+            </p>
+            <div class="px-welcome-hint">
+              <span class="px-blink">▶</span> 从左侧选择一个任务，或在下方直接输入
             </div>
-            <!-- Timestamp -->
-            <span v-if="msg.ts" class="msg-time">{{ msg.ts }}</span>
-          </div>
-
-          <!-- User avatar -->
-          <div v-if="msg.role === 'user'" class="avatar-wrap">
-            <div class="avatar user-avatar">🧑</div>
           </div>
         </div>
-        <div class="messages-bottom-spacer"></div>
-      </div>
-    </main>
 
-    <!-- ===== Scroll-to-bottom button ===== -->
-    <button
-      v-if="showScrollBtn"
-      class="scroll-btn"
-      @click="scrollToBottom(true)"
-      title="滚动到底部"
-    >
-      ↓
-    </button>
-
-    <!-- ===== Bottom Input Area ===== -->
-    <div class="footer-area">
-      <!-- Persistent Quick Questions -->
-      <div v-if="messages.length > 0" class="quick-row">
-        <div class="quick-chips quick-chips-compact">
-          <button
-            v-for="q in compactQuickQuestions"
-            :key="q"
-            class="quick-chip quick-chip-compact"
-            @click="sendQuickQuestion(q)"
+        <!-- 消息列表 -->
+        <div v-else class="px-messages">
+          <div
+            v-for="(msg, index) in messages"
+            :key="index"
+            :class="['px-row', msg.role]"
           >
-            {{ q }}
-          </button>
-        </div>
-      </div>
+            <div v-if="msg.role === 'assistant'" class="px-avatar px-avatar-bot">▣</div>
 
-      <!-- Input Box -->
-      <div class="input-wrapper">
-        <div :class="['input-box', { focused: inputFocused }]">
-          <span class="input-icon">💬</span>
-          <input
-            ref="inputEl"
-            v-model="question"
-            @keyup.enter="sendQuestion"
-            @focus="inputFocused = true"
-            @blur="inputFocused = false"
-            placeholder="输入您的问题，我将为您查询数据..."
-            :disabled="loading"
-          />
-          <span v-if="question && !loading" class="input-hint">⏎ 发送</span>
-          <button
-            class="send-btn"
-            @click="sendQuestion"
-            :disabled="loading || !question"
-            :title="loading ? '查询中...' : '发送'"
-          >
-            <span v-if="!loading" class="send-arrow">→</span>
-            <span v-else class="send-spinner"></span>
-          </button>
+            <div class="px-bubble-wrap">
+              <div class="px-bubble">
+                <!-- 文本 -->
+                <div v-if="msg.type === 'text'" class="px-text">{{ msg.content }}</div>
+
+                <!-- 进度 -->
+                <div v-else-if="msg.type === 'steps'" class="px-steps">
+                  <div
+                    v-for="(step, sIdx) in msg.steps"
+                    :key="sIdx"
+                    :class="['px-step', step.status]"
+                  >
+                    <span class="px-step-box">
+                      <span v-if="step.status === 'success'">x</span>
+                      <span v-else-if="step.status === 'error'">!</span>
+                      <span v-else class="px-step-run">.</span>
+                    </span>
+                    <span class="px-step-text">{{ step.text }}</span>
+                  </div>
+                </div>
+
+                <!-- 表格 -->
+                <div v-else-if="msg.type === 'table'" class="px-table-block">
+                  <div class="px-table-bar">
+                    <span>▤ RESULT</span>
+                    <span class="px-table-count">{{ msg.rows.length }} ROWS</span>
+                  </div>
+                  <div class="px-table-wrap">
+                    <table class="px-table">
+                      <thead>
+                        <tr>
+                          <th v-for="col in msg.columns" :key="col">{{ col }}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr v-for="(row, rIdx) in msg.rows" :key="rIdx">
+                          <td v-for="col in msg.columns" :key="col">
+                            {{ row[col] }}
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <!-- 错误 -->
+                <div v-else-if="msg.type === 'error'" class="px-error">
+                  <span class="px-error-tag">ERROR</span>
+                  <span class="px-error-detail">{{ msg.content }}</span>
+                </div>
+              </div>
+              <span v-if="msg.ts" class="px-time">{{ msg.ts }}</span>
+            </div>
+
+            <div v-if="msg.role === 'user'" class="px-avatar px-avatar-user">◧</div>
+          </div>
+          <div class="px-bottom-spacer"></div>
         </div>
-      </div>
+      </main>
     </div>
+
+    <!-- ===== 底栏：状态 + 输入 ===== -->
+    <footer class="px-footer">
+      <!-- 状态栏（状态指示从顶栏移到此处） -->
+      <div class="px-statusbar">
+        <span class="px-status-dot" :class="loading ? 'busy' : 'idle'"></span>
+        <span class="px-status-text">{{ loading ? "RUNNING..." : "READY" }}</span>
+        <span class="px-status-sep">│</span>
+        <span class="px-status-text">SQL ENGINE</span>
+        <button
+          v-if="showScrollBtn"
+          class="px-jump"
+          @click="scrollToBottom(true)"
+          title="跳到最新"
+        >
+          ▼▼
+        </button>
+      </div>
+
+      <!-- 输入框 -->
+      <div class="px-input-row">
+        <span class="px-prompt">&gt;</span>
+        <input
+          ref="inputEl"
+          v-model="question"
+          class="px-input"
+          @keyup.enter="sendQuestion"
+          placeholder="输入你的问题…"
+          :disabled="loading"
+        />
+        <button
+          class="px-send"
+          @click="sendQuestion"
+          :disabled="loading || !question"
+          :title="loading ? '查询中…' : '发送'"
+        >
+          <span v-if="!loading" class="px-send-arrow">▶</span>
+          <span v-else class="px-send-spin"></span>
+        </button>
+      </div>
+    </footer>
   </div>
 </template>
 
 <script setup>
 import { nextTick, ref, computed } from "vue";
 
-// ===== Constants =====
+// ===== 常量 =====
 const API_URL = "/api/query";
 
 const quickQuestions = [
@@ -217,24 +185,21 @@ const quickQuestions = [
   "对比今年与去年的营收情况",
 ];
 
-const compactQuickQuestions = [
-  "最近一周订单",
-  "各地区销售额",
-  "客户消费 TOP 10",
-  "商品销售趋势",
-];
-
-// ===== State =====
+// ===== 状态 =====
 const question = ref("");
 const loading = ref(false);
 const messages = ref([]);
 const messagesEl = ref(null);
 const inputEl = ref(null);
-const inputFocused = ref(false);
 const showScrollBtn = ref(false);
 const isNearBottom = ref(true);
 
-// ===== Helpers =====
+// 顶栏关卡数：用户提问次数
+const queryCount = computed(
+  () => messages.value.filter((m) => m.role === "user").length
+);
+
+// ===== 工具 =====
 function timeNow() {
   const d = new Date();
   return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
@@ -257,8 +222,9 @@ function onScroll() {
   showScrollBtn.value = !isNearBottom.value;
 }
 
-// ===== Actions =====
+// ===== 动作 =====
 function sendQuickQuestion(q) {
+  if (loading.value) return;
   question.value = q;
   sendQuestion();
 }
@@ -269,7 +235,6 @@ async function sendQuestion() {
   const q = question.value;
   question.value = "";
   loading.value = true;
-  inputFocused.value = false;
 
   messages.value.push({
     role: "user",
@@ -278,7 +243,7 @@ async function sendQuestion() {
     ts: timeNow(),
   });
 
-  // steps container
+  // 进度容器
   const stepIndex =
     messages.value.push({
       role: "assistant",
@@ -324,7 +289,7 @@ async function sendQuestion() {
 
         const steps = messages.value[stepIndex].steps;
 
-        // progress
+        // 进度
         if (data.type === "progress") {
           let step = steps.find((s) => s.text === data.step);
           if (!step) {
@@ -335,7 +300,7 @@ async function sendQuestion() {
           }
         }
 
-        // table result
+        // 结果表
         else if (data.type === "result" && Array.isArray(data.data)) {
           messages.value.push({
             role: "assistant",
@@ -346,7 +311,7 @@ async function sendQuestion() {
           });
         }
 
-        // error
+        // 错误
         else if (data.type === "error") {
           messages.value.push({
             role: "assistant",
@@ -376,784 +341,632 @@ async function sendQuestion() {
 </script>
 
 <style scoped>
-/* ===== Layout ===== */
-.chat-app {
+/* ===== 整体布局 ===== */
+.px-app {
   display: flex;
   flex-direction: column;
   height: 100%;
-  background: linear-gradient(180deg, #f0f4f8 0%, #f8fafc 100%);
 }
 
-/* ===== Header ===== */
-.chat-header {
-  position: relative;
+/* ===== 顶栏 ===== */
+.px-header {
   flex-shrink: 0;
-  background: var(--color-surface);
-  border-bottom: 1px solid var(--color-border-light);
-  z-index: 10;
-}
-
-.header-accent {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: var(--gradient-accent);
-}
-
-.header-content {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: 56px;
-  padding: 0 var(--space-xl);
-  max-width: 1200px;
-  margin: 0 auto;
+  height: var(--header-h);
+  padding: 0 var(--sp-4);
+  background: var(--px-surface);
+  border-bottom: var(--px-border);
+  box-shadow: var(--px-shadow-sm);
+  z-index: 10;
 }
 
-.header-brand {
+.px-brand {
   display: flex;
   align-items: center;
-  gap: var(--space-md);
+  gap: var(--sp-3);
 }
 
-.header-icon {
+.px-logo {
   font-size: 26px;
+  color: var(--px-primary);
   line-height: 1;
 }
 
-.header-text {
+.px-brand-text {
   display: flex;
   flex-direction: column;
-  gap: 1px;
 }
 
-.header-title {
-  font-size: var(--font-size-lg);
-  font-weight: 700;
-  color: var(--color-text);
-  line-height: 1.3;
+.px-title {
+  font-family: "Press Start 2P", var(--font-family);
+  font-size: 14px;
+  letter-spacing: 1px;
+  color: var(--px-ink);
+  line-height: 1.4;
 }
 
-.header-subtitle {
-  font-size: var(--font-size-xs);
-  color: var(--color-text-muted);
-  font-weight: 400;
+.px-subtitle {
+  font-size: var(--fs-xs);
+  color: var(--px-ink-2);
 }
 
-.header-status {
+/* 关卡计数 */
+.px-stage {
   display: flex;
   align-items: center;
-  gap: var(--space-sm);
+  gap: var(--sp-2);
+  padding: var(--sp-1) var(--sp-3);
+  background: var(--px-ink);
+  color: var(--px-surface);
+  border: var(--px-border-thin);
+  box-shadow: var(--px-shadow-sm);
 }
 
-.status-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--color-success);
-  transition: background var(--transition-base);
+.px-stage-label {
+  font-size: 10px;
+  letter-spacing: 1px;
+  color: var(--px-primary-l);
 }
 
-.status-dot.busy {
-  background: var(--color-warning);
-  animation: pulse-dot 1.2s ease-in-out infinite;
+.px-stage-num {
+  font-size: var(--fs-md);
+  font-weight: 700;
 }
 
-.status-label {
-  font-size: var(--font-size-xs);
-  color: var(--color-text-muted);
-}
-
-/* ===== Main Messages Area ===== */
-.chat-main {
+/* ===== 主体 ===== */
+.px-body {
   flex: 1;
+  display: flex;
+  min-height: 0;
+}
+
+/* ===== 左侧栏 ===== */
+.px-sidebar {
+  flex-shrink: 0;
+  width: 240px;
+  padding: var(--sp-4);
+  overflow-y: auto;
+  border-right: var(--px-border);
+  background: rgba(251, 247, 234, 0.6);
+}
+
+.px-panel {
+  border: var(--px-border);
+  background: var(--px-surface);
+  box-shadow: var(--px-shadow);
+}
+
+.px-panel-head {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-2) var(--sp-3);
+  background: var(--px-primary);
+  color: #fff;
+  border-bottom: var(--px-border-thin);
+}
+
+.px-panel-icon {
+  font-size: var(--fs-sm);
+}
+
+.px-panel-title {
+  font-size: 10px;
+  letter-spacing: 1px;
+}
+
+.px-panel-body {
+  display: flex;
+  flex-direction: column;
+}
+
+.px-quest {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-2);
+  padding: var(--sp-2) var(--sp-3);
+  background: transparent;
+  border: none;
+  border-bottom: 2px dashed var(--px-ink-3);
+  font-family: var(--font-family);
+  font-size: var(--fs-xs);
+  color: var(--px-ink-2);
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--t-fast), color var(--t-fast);
+}
+
+.px-quest:last-child {
+  border-bottom: none;
+}
+
+.px-quest:hover:not(:disabled) {
+  background: var(--px-primary-l);
+  color: var(--px-ink);
+}
+
+.px-quest:active:not(:disabled) {
+  background: var(--px-primary);
+  color: #fff;
+}
+
+.px-quest:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.px-quest-idx {
+  flex-shrink: 0;
+  color: var(--px-accent);
+  font-weight: 700;
+}
+
+.px-quest-text {
+  line-height: 1.5;
+}
+
+/* ===== 消息区 ===== */
+.px-main {
+  flex: 1;
+  min-width: 0;
   overflow-y: auto;
   overflow-x: hidden;
 }
 
-/* ===== Welcome Screen ===== */
-.welcome-screen {
+/* 空状态 */
+.px-welcome {
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
   min-height: 100%;
-  padding: 60px var(--space-xl) 200px;
+  padding: var(--sp-8) var(--sp-4);
+}
+
+.px-welcome-box {
+  max-width: 460px;
+  padding: var(--sp-6);
   text-align: center;
-  animation: fadeIn 0.5s ease;
+  border: var(--px-border);
+  background: var(--px-surface);
+  box-shadow: var(--px-shadow-lg);
 }
 
-.welcome-illustration {
-  position: relative;
-  width: 100px;
-  height: 100px;
+.px-welcome-robot {
+  font-size: 40px;
+  color: var(--px-primary);
+  margin-bottom: var(--sp-4);
+  animation: px-bounce 1.6s steps(4, end) infinite;
+}
+
+.px-welcome-title {
+  font-family: "Press Start 2P", var(--font-family);
+  font-size: 15px;
+  letter-spacing: 1px;
+  color: var(--px-ink);
+  margin-bottom: var(--sp-3);
+}
+
+.px-welcome-desc {
+  font-size: var(--fs-sm);
+  color: var(--px-ink-2);
+  line-height: 1.9;
+  margin-bottom: var(--sp-4);
+}
+
+.px-welcome-hint {
+  padding-top: var(--sp-3);
+  border-top: 2px dashed var(--px-ink-3);
+  font-size: var(--fs-xs);
+  color: var(--px-ink-2);
+}
+
+.px-blink {
+  color: var(--px-accent);
+  animation: px-blink 1s steps(1, end) infinite;
+}
+
+/* 消息列表 */
+.px-messages {
+  padding: var(--sp-5) var(--sp-4);
+}
+
+.px-bottom-spacer {
+  height: var(--sp-4);
+}
+
+.px-row {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: var(--space-2xl);
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-5);
+  animation: px-fade-up var(--t-base);
 }
 
-.illustration-icon {
-  font-size: 52px;
-  position: relative;
-  z-index: 1;
-  animation: float 3s ease-in-out infinite;
-}
-
-.illustration-rings {
-  position: absolute;
-  inset: 0;
-}
-
-.ring {
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  border: 2px solid var(--color-primary-100);
-  animation: pulse-dot 2.5s ease-in-out infinite;
-}
-
-.ring-2 {
-  animation-delay: 0.4s;
-  inset: -8px;
-}
-
-.ring-3 {
-  animation-delay: 0.8s;
-  inset: -16px;
-}
-
-.welcome-title {
-  font-size: var(--font-size-2xl);
-  font-weight: 700;
-  color: var(--color-text);
-  margin-bottom: var(--space-sm);
-  background: var(--gradient-primary);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.welcome-desc {
-  font-size: var(--font-size-md);
-  color: var(--color-text-secondary);
-  max-width: 480px;
-  line-height: 1.7;
-  margin-bottom: var(--space-2xl);
-}
-
-.welcome-features {
-  display: flex;
-  gap: var(--space-xl);
-  margin-bottom: var(--space-2xl);
-  flex-wrap: wrap;
-  justify-content: center;
-}
-
-.feature-item {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-  font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
-  background: var(--color-surface);
-  padding: var(--space-sm) var(--space-lg);
-  border-radius: var(--radius-full);
-  box-shadow: var(--shadow-sm);
-  border: 1px solid var(--color-border-light);
-}
-
-.feature-icon {
-  font-size: 16px;
-}
-
-.quick-questions-welcome {
-  max-width: 560px;
-}
-
-.quick-label {
-  font-size: var(--font-size-sm);
-  color: var(--color-text-muted);
-  margin-bottom: var(--space-md);
-}
-
-.quick-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-sm);
-  justify-content: center;
-}
-
-.quick-chip {
-  padding: 10px 18px;
-  border-radius: var(--radius-full);
-  border: 1px solid var(--color-border);
-  background: var(--color-surface);
-  color: var(--color-text);
-  font-size: var(--font-size-sm);
-  font-family: var(--font-family);
-  cursor: pointer;
-  transition: all var(--transition-fast);
-  white-space: nowrap;
-  box-shadow: var(--shadow-sm);
-}
-
-.quick-chip:hover {
-  border-color: var(--color-primary);
-  color: var(--color-primary);
-  background: var(--color-primary-50);
-  box-shadow: var(--shadow-glow);
-  transform: translateY(-1px);
-}
-
-.quick-chip:active {
-  transform: translateY(0);
-}
-
-/* ===== Messages Container ===== */
-.messages-container {
-  padding: var(--space-xl) 20% 200px;
-}
-
-.messages-bottom-spacer {
-  height: 1px;
-}
-
-/* ===== Message Row ===== */
-.message-row {
-  display: flex;
-  margin-bottom: var(--space-xl);
-  animation: fadeInUp 0.35s ease;
-  gap: var(--space-sm);
-}
-
-.message-row.user {
+.px-row.user {
   justify-content: flex-end;
 }
 
-.message-row.assistant {
+.px-row.assistant {
   justify-content: flex-start;
 }
 
-/* ===== Avatars ===== */
-.avatar-wrap {
+/* 头像：方块 */
+.px-avatar {
   flex-shrink: 0;
-  padding-top: 2px;
-}
-
-.avatar {
-  width: 36px;
-  height: 36px;
-  border-radius: var(--radius-md);
+  width: 34px;
+  height: 34px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 18px;
+  font-size: 17px;
+  border: var(--px-border-thin);
+  box-shadow: var(--px-shadow-sm);
 }
 
-.assistant-avatar {
-  background: linear-gradient(135deg, #eff6ff, #dbeafe);
+.px-avatar-bot {
+  background: var(--px-primary-l);
+  color: var(--px-primary-d);
 }
 
-.user-avatar {
-  background: linear-gradient(135deg, #eef2ff, #e0e7ff);
+.px-avatar-user {
+  background: var(--px-accent-l);
+  color: var(--px-accent);
 }
 
-/* ===== Bubble ===== */
-.bubble-wrap {
-  max-width: min(780px, 72%);
+/* 气泡 */
+.px-bubble-wrap {
   display: flex;
   flex-direction: column;
+  max-width: min(720px, 74%);
 }
 
-.message-row.user .bubble-wrap {
+.px-row.user .px-bubble-wrap {
   align-items: flex-end;
 }
 
-.message-row.assistant .bubble-wrap {
+.px-row.assistant .px-bubble-wrap {
   align-items: flex-start;
 }
 
-.bubble {
-  padding: 14px 18px;
-  border-radius: var(--radius-lg);
-  font-size: var(--font-size-base);
-  line-height: 1.65;
+.px-bubble {
+  padding: var(--sp-3) var(--sp-4);
+  font-size: var(--fs-base);
+  line-height: 1.7;
   word-break: break-word;
+  border: var(--px-border);
+  box-shadow: var(--px-shadow-sm);
 }
 
-.message-row.user .bubble {
-  background: var(--gradient-primary);
+.px-row.user .px-bubble {
+  background: var(--px-primary);
   color: #fff;
-  border-bottom-right-radius: var(--radius-sm);
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
 }
 
-.message-row.assistant .bubble {
-  background: var(--color-surface);
-  color: var(--color-text);
-  border-bottom-left-radius: var(--radius-sm);
-  box-shadow: var(--shadow-md);
-  border: 1px solid var(--color-border-light);
+.px-row.assistant .px-bubble {
+  background: var(--px-surface);
+  color: var(--px-ink);
 }
 
-/* Message time */
-.msg-time {
-  font-size: 11px;
-  color: var(--color-text-muted);
-  margin-top: 4px;
-  padding: 0 4px;
+.px-time {
+  margin-top: var(--sp-1);
+  font-size: 10px;
+  color: var(--px-ink-3);
 }
 
-/* ===== Step Indicators ===== */
-.msg-steps {
+/* ===== 进度步骤 ===== */
+.px-steps {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
-.step-item {
+.px-step {
   display: flex;
   align-items: center;
-  gap: 10px;
-  font-size: var(--font-size-sm);
+  gap: var(--sp-2);
+  font-size: var(--fs-sm);
 }
 
-.step-dot {
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
+.px-step-box {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
-  transition: all var(--transition-base);
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
-  color: #fff;
+  border: var(--px-border-thin);
+  background: var(--px-surface-2);
+  color: var(--px-ink-3);
 }
 
-.step-dot.running {
-  background: var(--color-warning);
-  animation: pulse-dot 1.2s ease-in-out infinite;
+.px-step.success .px-step-box {
+  background: var(--px-success-bg);
+  border-color: var(--px-success);
+  color: var(--px-success);
 }
 
-.step-dot.success {
-  background: var(--color-success);
+.px-step.error .px-step-box {
+  background: var(--px-error-bg);
+  border-color: var(--px-error);
+  color: var(--px-error);
 }
 
-.step-dot.error {
-  background: var(--color-error);
+.px-step.running .px-step-box {
+  background: var(--px-warning-bg);
+  border-color: var(--px-warning);
+  color: var(--px-warning);
 }
 
-.step-text {
-  color: var(--color-text-secondary);
+.px-step-run {
+  animation: px-blink 0.8s steps(1, end) infinite;
 }
 
-.step-item.success .step-text {
-  color: var(--color-text);
+.px-step-text {
+  color: var(--px-ink-2);
 }
 
-.step-item.error .step-text {
-  color: var(--color-error);
+.px-step.success .px-step-text,
+.px-step.running .px-step-text {
+  color: var(--px-ink);
 }
 
-/* ===== Table ===== */
-.msg-table {
-  max-width: 100%;
+.px-step.error .px-step-text {
+  color: var(--px-error);
 }
 
-.table-header-bar {
+/* ===== 表格 ===== */
+.px-table-block {
+  min-width: 320px;
+}
+
+.px-table-bar {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 10px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid var(--color-border-light);
+  justify-content: space-between;
+  padding: var(--sp-2) var(--sp-3);
+  margin-bottom: var(--sp-3);
+  background: var(--px-ink);
+  color: var(--px-surface);
+  font-size: 10px;
+  letter-spacing: 1px;
 }
 
-.table-icon {
-  font-size: 14px;
+.px-table-count {
+  color: var(--px-primary-l);
 }
 
-.table-label {
-  font-size: var(--font-size-sm);
-  font-weight: 600;
-  color: var(--color-text);
-}
-
-.table-count {
-  margin-left: auto;
-  font-size: var(--font-size-xs);
-  color: var(--color-text-muted);
-  background: var(--color-bg);
-  padding: 2px 8px;
-  border-radius: var(--radius-full);
-}
-
-.table-wrap {
-  max-width: 100%;
+.px-table-wrap {
   overflow-x: auto;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--color-border);
+  border: var(--px-border-thin);
 }
 
-.result-table {
+.px-table {
   width: max-content;
   min-width: 100%;
-  table-layout: auto;
   border-collapse: collapse;
 }
 
-.result-table th,
-.result-table td {
-  padding: 10px 14px;
-  white-space: nowrap;
-  font-size: var(--font-size-sm);
+.px-table th,
+.px-table td {
+  padding: var(--sp-2) var(--sp-3);
+  font-size: var(--fs-xs);
   text-align: left;
+  white-space: nowrap;
+  border: 1px solid var(--px-ink-3);
 }
 
-.result-table thead {
-  position: sticky;
-  top: 0;
-  z-index: 1;
+.px-table th {
+  background: var(--px-primary-l);
+  color: var(--px-ink);
+  font-weight: 700;
+  letter-spacing: 1px;
 }
 
-.result-table th {
-  background: linear-gradient(180deg, #f8fafc, #f1f5f9);
-  font-weight: 600;
-  color: var(--color-text);
-  border-bottom: 2px solid var(--color-border);
-  font-size: var(--font-size-xs);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+.px-table td {
+  background: var(--px-surface-2);
+  color: var(--px-ink-2);
 }
 
-.result-table td {
-  border-bottom: 1px solid var(--color-border-light);
-  color: var(--color-text-secondary);
+.px-table tbody tr:hover td {
+  background: var(--px-accent-l);
+  color: var(--px-ink);
 }
 
-.result-table tbody tr:last-child td {
-  border-bottom: none;
-}
-
-.result-table tbody tr:nth-child(even) td {
-  background: #fafbfc;
-}
-
-.result-table tbody tr:hover td {
-  background: var(--color-primary-50);
-}
-
-/* ===== Error ===== */
-.msg-error {
+/* ===== 错误 ===== */
+.px-error {
   display: flex;
-  gap: var(--space-md);
   align-items: flex-start;
+  gap: var(--sp-2);
 }
 
-.error-icon {
-  font-size: 20px;
+.px-error-tag {
   flex-shrink: 0;
-  margin-top: 1px;
+  padding: 1px var(--sp-2);
+  background: var(--px-error);
+  color: #fff;
+  font-size: 10px;
+  letter-spacing: 1px;
 }
 
-.error-content {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+.px-error-detail {
+  font-size: var(--fs-sm);
+  color: var(--px-error);
+  line-height: 1.6;
 }
 
-.error-label {
-  font-weight: 600;
-  color: var(--color-error);
-  font-size: var(--font-size-sm);
+/* ===== 底栏 ===== */
+.px-footer {
+  flex-shrink: 0;
+  padding: var(--sp-2) var(--sp-4) var(--sp-4);
+  background: var(--px-surface);
+  border-top: var(--px-border);
+  box-shadow: 0 -2px 0 rgba(34, 34, 59, 0.15);
 }
 
-.error-detail {
-  color: var(--color-text-secondary);
-  font-size: var(--font-size-sm);
-  line-height: 1.5;
-}
-
-/* ===== Scroll-to-bottom ===== */
-.scroll-btn {
-  position: fixed;
-  right: 32px;
-  bottom: 140px;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  border: 1px solid var(--color-border);
-  background: var(--color-surface);
-  color: var(--color-text-secondary);
-  font-size: 18px;
-  cursor: pointer;
+/* 状态栏 */
+.px-statusbar {
   display: flex;
   align-items: center;
-  justify-content: center;
-  box-shadow: var(--shadow-lg);
-  z-index: 20;
-  transition: all var(--transition-fast);
-  animation: fadeInUp 0.3s ease;
+  gap: var(--sp-2);
+  padding: 0 var(--sp-1) var(--sp-2);
+  font-size: 10px;
+  letter-spacing: 1px;
+  color: var(--px-ink-2);
 }
 
-.scroll-btn:hover {
-  color: var(--color-primary);
-  border-color: var(--color-primary);
-  box-shadow: var(--shadow-glow);
-  transform: translateY(-1px);
+.px-status-dot {
+  width: 8px;
+  height: 8px;
+  background: var(--px-success);
+  border: 1px solid var(--px-ink);
 }
 
-/* ===== Footer Area ===== */
-.footer-area {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 0 var(--space-lg) var(--space-xl);
-  pointer-events: none;
-  background: linear-gradient(0deg, rgba(248, 250, 252, 0.98) 60%, rgba(248, 250, 252, 0));
-  padding-top: 40px;
+.px-status-dot.busy {
+  background: var(--px-warning);
+  animation: px-blink 0.8s steps(1, end) infinite;
 }
 
-/* ===== Persistent Quick Questions ===== */
-.quick-row {
-  pointer-events: auto;
-  margin-bottom: var(--space-md);
-  max-width: 720px;
-  width: 100%;
-  overflow: hidden;
+.px-status-sep {
+  color: var(--px-ink-3);
 }
 
-.quick-chips-compact {
-  justify-content: flex-start;
-  flex-wrap: nowrap;
-  overflow-x: auto;
-  padding: 4px 0;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-}
-
-.quick-chips-compact::-webkit-scrollbar {
-  display: none;
-}
-
-.quick-chip-compact {
-  font-size: var(--font-size-xs);
-  padding: 6px 14px;
-  border-radius: var(--radius-full);
-  border: 1px solid var(--color-border);
-  background: rgba(255, 255, 255, 0.85);
-  color: var(--color-text-secondary);
+.px-jump {
+  margin-left: auto;
+  padding: 1px var(--sp-2);
+  background: var(--px-accent-l);
+  border: var(--px-border-thin);
   font-family: var(--font-family);
+  font-size: 10px;
+  color: var(--px-ink);
   cursor: pointer;
-  transition: all var(--transition-fast);
-  backdrop-filter: blur(8px);
-  flex-shrink: 0;
+  box-shadow: var(--px-shadow-sm);
 }
 
-.quick-chip-compact:hover {
-  border-color: var(--color-primary-light);
-  color: var(--color-primary);
-  background: var(--color-primary-50);
+.px-jump:hover {
+  background: var(--px-accent);
+  color: #fff;
 }
 
-/* ===== Input Wrapper ===== */
-.input-wrapper {
-  pointer-events: auto;
-  width: 100%;
-  max-width: 720px;
-}
-
-.input-box {
+/* 输入行 */
+.px-input-row {
   display: flex;
   align-items: center;
-  gap: var(--space-md);
-  padding: 6px 6px 6px 18px;
-  border-radius: var(--radius-full);
-  background: rgba(255, 255, 255, 0.92);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1.5px solid rgba(0, 0, 0, 0.08);
-  box-shadow: var(--shadow-xl);
-  transition: all var(--transition-base);
+  gap: var(--sp-2);
+  padding: var(--sp-1);
+  border: var(--px-border);
+  background: var(--px-surface-2);
+  box-shadow: var(--px-shadow-sm);
 }
 
-.input-box.focused {
-  border-color: var(--color-primary);
-  box-shadow: var(--shadow-xl), var(--shadow-glow);
+.px-prompt {
+  padding-left: var(--sp-2);
+  color: var(--px-accent);
+  font-weight: 700;
+  animation: px-blink 1.1s steps(1, end) infinite;
 }
 
-.input-box:hover {
-  border-color: rgba(59, 130, 246, 0.3);
-}
-
-.input-icon {
-  font-size: 18px;
-  flex-shrink: 0;
-  opacity: 0.6;
-}
-
-.input-box input {
+.px-input {
   flex: 1;
+  min-width: 0;
+  padding: var(--sp-2) 0;
   border: none;
   outline: none;
   background: transparent;
-  font-size: var(--font-size-md);
   font-family: var(--font-family);
-  color: var(--color-text);
-  min-width: 0;
+  font-size: var(--fs-md);
+  color: var(--px-ink);
 }
 
-.input-box input::placeholder {
-  color: var(--color-text-muted);
+.px-input::placeholder {
+  color: var(--px-ink-3);
 }
 
-.input-box input:disabled {
-  opacity: 0.6;
+.px-input:disabled {
+  opacity: 0.5;
 }
 
-.input-hint {
-  font-size: var(--font-size-xs);
-  color: var(--color-text-muted);
-  white-space: nowrap;
-}
-
-.send-btn {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  border: none;
-  background: var(--gradient-primary);
-  color: #fff;
-  cursor: pointer;
+.px-send {
+  flex-shrink: 0;
+  width: 38px;
+  height: 34px;
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
-  transition: all var(--transition-fast);
-  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
-  font-size: 16px;
+  background: var(--px-primary);
+  border: var(--px-border-thin);
+  color: #fff;
+  font-size: 15px;
+  cursor: pointer;
+  transition: background var(--t-fast), transform var(--t-fast);
 }
 
-.send-btn:hover:not(:disabled) {
-  background: var(--gradient-primary-hover);
-  box-shadow: 0 4px 14px rgba(59, 130, 246, 0.4);
-  transform: scale(1.05);
+.px-send:hover:not(:disabled) {
+  background: var(--px-primary-d);
+  transform: translate(-1px, -1px);
 }
 
-.send-btn:active:not(:disabled) {
-  transform: scale(0.96);
+.px-send:active:not(:disabled) {
+  transform: translate(1px, 1px);
 }
 
-.send-btn:disabled {
+.px-send:disabled {
   opacity: 0.4;
   cursor: not-allowed;
-  box-shadow: none;
 }
 
-.send-arrow {
-  font-size: 20px;
-  font-weight: 600;
-  line-height: 1;
-}
-
-.send-spinner {
-  width: 18px;
-  height: 18px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
+.px-send-spin {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.35);
   border-top-color: #fff;
-  border-radius: 50%;
-  animation: spin 0.7s linear infinite;
+  animation: px-spin 0.7s steps(8, end) infinite;
 }
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
+/* ===== 响应式 ===== */
+@media (max-width: 900px) {
+  .px-sidebar {
+    width: 200px;
+  }
 }
 
-/* ===== Responsive ===== */
-@media (max-width: 768px) {
-  .header-content {
-    padding: 0 var(--space-lg);
+@media (max-width: 720px) {
+  .px-body {
+    flex-direction: column;
   }
 
-  .header-subtitle {
+  /* 窄屏：左侧栏折到上方，横向滚动 */
+  .px-sidebar {
+    width: 100%;
+    padding: var(--sp-2);
+    border-right: none;
+    border-bottom: var(--px-border);
+  }
+
+  .px-panel-body {
+    flex-direction: row;
+    overflow-x: auto;
+  }
+
+  .px-quest {
+    flex-shrink: 0;
+    border-bottom: none;
+    border-right: 2px dashed var(--px-ink-3);
+    white-space: nowrap;
+  }
+
+  .px-title {
+    font-size: 11px;
+  }
+
+  .px-subtitle {
     display: none;
   }
 
-  .messages-container {
-    padding: var(--space-lg) var(--space-lg) 180px;
-  }
-
-  .bubble-wrap {
-    max-width: 82%;
-  }
-
-  .welcome-title {
-    font-size: var(--font-size-xl);
-  }
-
-  .welcome-features {
-    gap: var(--space-sm);
-  }
-
-  .feature-item {
-    padding: var(--space-xs) var(--space-md);
-    font-size: var(--font-size-xs);
-  }
-
-  .scroll-btn {
-    right: 16px;
-    bottom: 130px;
-  }
-
-  .quick-row {
-    padding: 0 var(--space-sm);
-  }
-}
-
-@media (max-width: 480px) {
-  .messages-container {
-    padding: var(--space-md) var(--space-md) 170px;
-  }
-
-  .bubble-wrap {
-    max-width: 88%;
-  }
-
-  .bubble {
-    padding: 10px 14px;
-    font-size: var(--font-size-sm);
-  }
-
-  .welcome-illustration {
-    width: 80px;
-    height: 80px;
-  }
-
-  .illustration-icon {
-    font-size: 42px;
-  }
-
-  .input-box {
-    padding: 4px 4px 4px 14px;
-    gap: var(--space-sm);
-  }
-
-  .input-box input {
-    font-size: var(--font-size-base);
-  }
-
-  .send-btn {
-    width: 36px;
-    height: 36px;
+  .px-bubble-wrap {
+    max-width: 84%;
   }
 }
 </style>

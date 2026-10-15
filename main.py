@@ -6,14 +6,18 @@
 import asyncio
 import time
 import uuid
-from urllib.request import Request
 
-from fastapi import FastAPI
+
+from fastapi import FastAPI, Request
+# 或 from starlette.requests import Request
+# 或 from starlette.requests import Request
+
 from starlette.responses import StreamingResponse
 
-from app.api.routers.query_router import query_router, fake_video_streamer
-from app.core import lifespan
+from app.api.routers.query_router import query_router
+
 from app.core.context import request_id_ctx_var
+from app.core.lifespan import lifespan
 
 # 创建fastapi入口实例
 app = FastAPI(lifespan=lifespan)
@@ -53,7 +57,3 @@ app.include_router(query_router)
 #         yield f'data: {{"stage": {i}}}\n\n'
 
 # 定义根路径GET接口
-@app.get("/")
-async def main():
-    # 返回流式响应，传入视频流生成器
-    return StreamingResponse(fake_video_streamer())
