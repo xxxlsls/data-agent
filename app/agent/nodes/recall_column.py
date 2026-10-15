@@ -28,7 +28,7 @@ async def recall_column(state:DataAgentState,runtime:Runtime[DataAgentContext]):
                 #1.1加载提示词
                 prompt = PromptTemplate(
                         template=load_prompt('extend_keywords_for_column_recall'),
-                        input_variables=[query]
+                        input_variables=["query"]
                 )
 
                 #1.2 定义JSON解析器对象 通过"管道符"|组合运行多个运行单元
@@ -56,7 +56,8 @@ async def recall_column(state:DataAgentState,runtime:Runtime[DataAgentContext]):
 
 
                 writer({"type": "progress", "step": "召回字段信息", "status": "success"})
-                return {'retrived_column_map': retrieved_column_map}
+                return {"retrieved_columns": list(retrieved_column_map.values())}
+
         except Exception as e:
                 logger.error(f"召回字段失败, 错误信息: {str(e)}")
                 writer({"type": "progress", "step": "召回字段信息", "status": "error"})

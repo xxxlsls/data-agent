@@ -85,8 +85,7 @@ def build_graph():
 
     graph_builder.add_edge('generate_sql', 'validate_sql')  # 校验SQL
 
-    graph_builder.add_conditional_edges('validate_sql',lambda state:'execute_sql' if state['error'] is None else 'correct_sql' ,
-                                        {"execute_sql":"execute_sql","correct_sql":"correct_sql"})#校正SQL
+    graph_builder.add_conditional_edges('validate_sql',_route_after_validate,{"execute_sql": "execute_sql", "correct_sql": "correct_sql"},)#校正SQL
 
     graph_builder.add_edge("correct_sql", "validate_sql")#设置最大校正次数,不能进入死循环
 

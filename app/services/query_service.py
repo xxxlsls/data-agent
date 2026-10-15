@@ -7,8 +7,9 @@ import json
 
 from langchain_huggingface import HuggingFaceEndpointEmbeddings
 
+from app.agent.graph import build_graph
 from app.agent.context import DataAgentContext
-from app.agent.graph import graph
+
 from app.agent.state import DataAgentState
 
 from app.repositories.es.value_es_repository import ValueESRepository
@@ -48,6 +49,7 @@ class QueryService:
         )
         print(f"embedding_client:{self.embedding_client}")
         print(f"meta_mysql_repository:{self.meta_mysql_repository}")
+        graph = build_graph()
         async for chunk in graph.astream(input=DataAgentState(query=question), context=context,
                                          stream_mode="custom"):
             # 查询结果是一个列表[字典] 这里转为JSON对象响应 ensure_ascii解决中文乱码问题，default遇上无法转JSON数据，采用字符串处理

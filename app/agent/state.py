@@ -47,7 +47,7 @@ class DataAgentState(TypedDict):
     query: str #用户输入的问题
     keywords: list[str] #关键词列表
     error:str# 验证SQL时的错误信息
-    correct_count: int #SQL校正次数,用于限制校正回环的最大轮数
+    correct_count: int  #SQL校正次数,用于限制校正回环的最大轮数
 
     retrieved_columns: list[ColumnInfo]  # 召回的字段信息
     retrieved_values: list[ValueInfo]  # 召回的值信息

@@ -17,6 +17,7 @@ from prompt.prompt_loader import load_prompt
 
 async def correct_sql(state: DataAgentState, runtime: Runtime[DataAgentContext]):
     writer = runtime.stream_writer
+
     writer({"type": "progress", "step": "校正SQL", "status": "running"})
     try:
         # 1. 获取到生成SQL所需要的信息 表、指标、用户问题、时间、数据库信息、错误信息
@@ -27,6 +28,7 @@ async def correct_sql(state: DataAgentState, runtime: Runtime[DataAgentContext])
         date_info = state["date_info"]
         error = state["error"]
         sql = state["sql"]
+        # correct_count = state.get("correct_count",0)
 
         # 2. 调用大模型对错误SQL进行修正
         prompt = PromptTemplate(template=load_prompt("correct_sql"),
@@ -41,12 +43,14 @@ async def correct_sql(state: DataAgentState, runtime: Runtime[DataAgentContext])
             "db_info": yaml.dump(db_info, allow_unicode=True, sort_keys=False),
             "date_info": yaml.dump(date_info, allow_unicode=True, sort_keys=False),
             "sql": sql,
-            "error": error
+            "error": error,
+            # "correct_count": correct_count
         })
+        correct_count = state.get("correct_count", 0) + 1
         writer({"type": "progress", "step": "校正SQL", "status": "success"})
         logger.info(f"校正SQL结果：{result}")
         # 3.更新状态中SQL
-        return {"sql": result, "error": None}
+        return {"sql": result, "error": None,  "correct_count": correct_count}
     except Exception as e:
         writer({"type": "progress", "step": "校正SQL", "status": "error"})
         logger.error(f"校正SQL失败, 错误信息: {str(e)}")

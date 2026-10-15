@@ -20,7 +20,7 @@ async def merge_retrieved_info(state:DataAgentState,runtime:Runtime[DataAgentCon
 
                 # 1. 合并所有字段 将已经召回的指标,字段取值,列表中包含的字段信息 合并到 已召回字段 tips:记得去重、字段取值加入到字段examples中
                 # 1.1 从state中获取已召回数据
-                retrieved_columns = state["retrived_columns"]
+                retrieved_columns = state["retrieved_columns"]
                 retrieved_metrics = state['retrieved_metrics']
                 retrieved_values = state['retrieved_values']
 
@@ -35,7 +35,7 @@ async def merge_retrieved_info(state:DataAgentState,runtime:Runtime[DataAgentCon
                         for metric_column_id in retrieved_metric.relevant_columns:
                                 if metric_column_id not in retrieved_columns_map:
                                         # 1.3.2 说明字典中没有指标中字段信息 需要查询字段信息
-                                        column_info: ColumnInfo = await meta_mysql_repository.get_column_info(
+                                        column_info: ColumnInfo = await meta_mysql_repository.get_column_info_by_id(
                                                 metric_column_id)
                                         retrieved_columns_map[metric_column_id] = column_info
 
